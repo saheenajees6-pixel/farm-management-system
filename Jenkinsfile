@@ -1,38 +1,42 @@
 pipeline {
- agent any
- tools {
-  maven 'Maven'
-  nodejs 'NodeJS'
- }
- stages {
-  stage('Clone') {
-   steps { echo 'Code cloned from GitHub' }
-  }
-  stage('Build Java') {
-   steps {
-    dir('backend-java') {
-     sh 'mvn clean package'
-     sh 'docker build -t farm-java-app .'
+    agent any
+
+    tools {
+        maven 'Maven'
+        nodejs 'nodejs'
     }
-   }
-  }
-  stage('Build Node') {
-   steps {
-    dir('backend-node') {
-     sh 'docker build -t farm-node-app .'
+
+    stages {
+
+        stage('Clone') {
+            steps {
+                echo 'Code cloned from GitHub'
+            }
+        }
+
+        stage('Build Java') {
+            steps {
+                dir('backend-java') {
+                    bat 'mvn clean package'
+                    bat 'docker build -t farm-java-app .'
+                }
+            }
+        }
+
+        stage('Build Node Backend') {
+            steps {
+                nodejs('nodejs') {
+                    dir('backend-node') {
+                        bat 'npm install'
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deployment stage (can add docker run later)'
+            }
+        }
     }
-   }
-  }
-  stage('Deploy') {
-   steps {
-    sh '''
-    docker network create farm-net || true
-    docker stop farm-java farm-node || true
-    docker rm farm-java farm-node || true
-    docker run -d --net farm-net -p 3000:3000 --name farm-node farm-node-app
-    docker run -d --net farm-net -p 8080:8080 --name farm-java farm-java-app
-    '''
-   }
-  }
- }
 }
